@@ -47,9 +47,6 @@ public:
     void readGaussianPly(const std::string& filename);
     void encodeGaussian();
     void decodeGaussian();
-    // void writeGaussianPly(const std::string& filename, pcl::PointCloud<Gaussian>::Ptr cloud);
-    // void encodeGaussian(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    // pcl::PointCloud<pcl::Gaussian>::Ptr decodeGaussian(const std::string& filename);
 
 public:
     pcl::PointCloud<Gaussian>::Ptr m_cloud;

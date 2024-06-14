@@ -42,39 +42,37 @@ void GaussianCodec::encodeGaussian()
 
     std::string output_filename = "./compressed_data.bin";
     std::ofstream outFile(output_filename, std::ios::out | std::ios::binary);
-    //outFile << compressedData.rdbuf();
-    //outFile.close();
+    outFile << compressedData.rdbuf();
+    outFile.close();
 }
 
 void GaussianCodec::decodeGaussian()
 {
-    // std::string input_filename = "./compressed_data.bin";
-    // std::ifstream inFile(input_filename, std::ios::in | std::ios::binary);
+    std::string input_filename = "./compressed_data.bin";
+    std::ifstream inFile(input_filename, std::ios::in | std::ios::binary);
 
-    // std::stringstream compressedData;
-    // // 파일 내용을 스트림으로 복사
-    // compressedData << inFile.rdbuf();
-    // inFile.close();
-    // pcl::io::OctreePointCloudCompression<Gaussian>* pointCloudDecoder;
-    // pointCloudDecoder = new pcl::io::OctreePointCloudCompression<Gaussian>();
+    std::stringstream compressedData;
 
-    // // 포인트 클라우드 객체를 생성합니다.
-    // pcl::PointCloud<Gaussian>::Ptr cloud(new pcl::PointCloud<Gaussian>);
+    compressedData << inFile.rdbuf();
+    inFile.close();
+    pcl::io::OctreePointCloudCompression<Gaussian>* pointCloudDecoder;
+    pointCloudDecoder = new pcl::io::OctreePointCloudCompression<Gaussian>();
 
-    // // 압축 해제
-    // pointCloudDecoder->decodePointCloud(compressedData, cloud);
+    pcl::PointCloud<Gaussian>::Ptr cloud(new pcl::PointCloud<Gaussian>);
+
+    pointCloudDecoder->decodePointCloud(compressedData, cloud);
 }
 
 void GaussianCodec::visualizeGaussian()
 {
-    // pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("Gaussian Cloud"));
-    // viewer->setBackgroundColor(0.0, 0.0, 0.0);
-    // viewer->addPointCloud<Gaussian>(m_cloud, "Gaussian Cloud");
-    // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Gaussian Cloud");
-    // viewer->addCoordinateSystem(1.0);
-    // viewer->initCameraParameters();
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("Gaussian Cloud"));
+    viewer->setBackgroundColor(0.0, 0.0, 0.0);
+    viewer->addPointCloud<Gaussian>(m_cloud, "Gaussian Cloud");
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Gaussian Cloud");
+    viewer->addCoordinateSystem(1.0);
+    viewer->initCameraParameters();
 
-    // while (!viewer->wasStopped()) {
-    //     viewer->spinOnce(100);
-    // }
+    while (!viewer->wasStopped()) {
+        viewer->spinOnce(100);
+    }
 }
