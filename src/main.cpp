@@ -3,16 +3,23 @@
 
 int main(int argc, char** argv)
 {
-    // if (argc < 2)
+    // if (argc != 2)
     // {
     //     std::cerr << "Usage: " << argv[0] << " <input.ply>" << std::endl;
     //     return -1;
     // }
 
-    GaussianCodec codec;
-    codec.readGaussianPly("../../pointcloud/dgs/mean_color_quaternion.ply");
+    float scale = 1;
+    float voxelSize = 0.0001;
+    bool isFlip = true;
+    float x = 0.0;
+    float y = 0.0;
+    float z = 0.0;
 
-    // compress the point cloud
-    codec.encodeGaussian();
+    GaussianFrame frame;
+    frame.readPlyAndTransform("../data/mean_color_quaternion.ply", scale, voxelSize, isFlip, x, y, z);
+    frame.generateOctree(voxelSize);
+    frame.compressBreadthBytes();
+    frame.reorder();
     return 0;
 }

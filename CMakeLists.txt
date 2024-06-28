@@ -15,7 +15,7 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 # src file
-add_executable(pcl_example src/main.cpp src/GaussianCodec.cpp)
+add_executable(pcl_example src/main.cpp src/GaussianCodec.cpp src/GaussianFrame.cpp)
 
 # link
 target_link_libraries(pcl_example ${PCL_LIBRARIES})
