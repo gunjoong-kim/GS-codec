@@ -125,7 +125,7 @@ void GaussianFrame::compressBreadthBytes()
         {
             mBreadthBytes.at(curDepth).push_back(cur.getCurrentOctreeDepth());
         }
-        else if (curDepth == mMaxBreadthDepth)
+        if (curDepth == mMaxBreadthDepth)
         {
             currentFirst = cur.getNodeConfiguration();
             std::bitset<8> bs(currentFirst);
@@ -191,39 +191,34 @@ void GaussianFrame::compressBreadthBytes()
     }
 
     // generate leaf node indices
-    for (int i = 0; i < mOctreeDepth; i++)
-    {
-        std::vector<int> tmp;
-        mPartitions.push_back(tmp);
-    }
+    // for(int i = 0 ; i < mOctreeDepth ; i++)
+    // { 
+    //     std::vector<int> temp;
+    //     mPartitions.push_back(temp);
+    // }
 
-    int cntChild = 0;
-    for (int i = 0; i < mBreadthBytes.at(mOctreeDepth - 1).size(); i++)
-    {
-        mPartitions.at(mOctreeDepth - 1).push_back(cntChild);
-        std::bitset<8> bs(mBreadthBytes.at(mOctreeDepth - 1).at(i));
-        cntChild += bs.count();
-    }
-    mPartitions.at(mOctreeDepth - 1).push_back(cntChild);
+    // int cntChild = 0;
+    // for(int i= 0 ; i < mBreadthBytes.at(mOctreeDepth - 1).size() ; i++)
+    // { 
+    //     mPartitions.at(mOctreeDepth - 1).push_back(cntChild);
+    //     std::bitset<8> bs(mBreadthBytes.at(mOctreeDepth - 1).at(i));
+    //     cntChild += bs.count();
 
-    int leafNodeNum = cntChild;
-
-    printf("mOctreeDepth : %d\n", mOctreeDepth);
-
-    for (int i = mOctreeDepth - 2; i >= 0; i--)
-    {
-        printf("breadthbytes size : %d\n", mBreadthBytes.at(i).size());
-        int cntChild = 0;
-        for (int j = 0; j < mBreadthBytes.at(i).size(); j++)
-        {
-            std::bitset<8> bs(mBreadthBytes.at(i).at(j));
-            printf("%d , %d\n", mPartitions.at(i + 1).size(), cntChild);
-            int childIdx = mPartitions.at(i + 1).at(cntChild);
-            mPartitions.at(i).push_back(childIdx);
-            cntChild += bs.count();
-        }
-        mPartitions.at(i).push_back(leafNodeNum);
-    }
+    // }
+    // mPartitions.at(mOctreeDepth - 1).push_back(cntChild);
+    // int leafNodeNum = cntChild; 
+    // for(int i = mOctreeDepth - 2 ; i >= 0 ; i--)
+    // { 
+    //     int cntChild = 0; 
+    //     for(int j = 0 ; j < mBreadthBytes.at(i).size() ; j++)
+    //     { 
+    //         std::bitset<8> bs(mBreadthBytes.at(i).at(j));
+    //         int childIdx = mPartitions.at(i+1).at(cntChild);
+    //         mPartitions.at(i).push_back(childIdx);
+    //         cntChild += bs.count();
+    //     }
+    //     mPartitions.at(i).push_back(leafNodeNum);
+    // }
 }
 
 void GaussianFrame::reorder()
@@ -234,56 +229,77 @@ void GaussianFrame::reorder()
     std::vector<Quaternion> quaternions;
     std::vector<Quaternion> reorderedQuaternions;
 
-    for (int i = 0; i < numBreadthNodes; i++)
+    for (int i = 0; i < mPointIndices.size(); i++)
     {
-        int startIndex = mPartitions.at(mMaxBreadthDepth).at(i);
-        int endIndex = mPartitions.at(mMaxBreadthDepth).at(i + 1);
-        for (int j = startIndex; j < endIndex; j++)
-        {
-            SH sh;
-            Quaternion quaternion;
-            int pointIndex = mPointIndices[j];
+        SH sh;
+        Quaternion quaternion;
+        sh.index = i;
+        sh.r = mCloud->points[mPointIndices[i]].r;
+        sh.g = mCloud->points[mPointIndices[i]].g;
+        sh.b = mCloud->points[mPointIndices[i]].b;
+        reorderedSH.push_back(sh);
 
-            sh.index = j;
-            sh.r = mCloud->points[pointIndex].r;
-            sh.g = mCloud->points[pointIndex].g;
-            sh.b = mCloud->points[pointIndex].b;
-            reorderedSH.push_back(sh);
-
-            quaternion.index = j;
-            quaternion.q1 = mCloud->points[pointIndex].q1;
-            quaternion.q2 = mCloud->points[pointIndex].q2;
-            quaternion.q3 = mCloud->points[pointIndex].q3;
-            quaternion.q4 = mCloud->points[pointIndex].q4;
-            quaternions.push_back(quaternion);
-        }
-
-        sort(reorderedSH.begin() + startIndex, reorderedSH.begin() + endIndex, cmpColor);
-
-        for (int j = startIndex; j < endIndex; j++)
-        {
-            int currentIdx = reorderedSH[j].index;
-            reorderedDepthNodes.push_back(mDepthList[currentIdx * 3]);
-            reorderedDepthNodes.push_back(mDepthList[currentIdx * 3 + 1]);
-            reorderedDepthNodes.push_back(mDepthList[currentIdx * 3 + 2]);
-            reorderedQuaternions.push_back(quaternions[currentIdx]);
-        }
+        quaternion.index = i;
+        quaternion.q1 = mCloud->points[mPointIndices[i]].q1;
+        quaternion.q2 = mCloud->points[mPointIndices[i]].q2;
+        quaternion.q3 = mCloud->points[mPointIndices[i]].q3;
+        quaternion.q4 = mCloud->points[mPointIndices[i]].q4;
+        quaternions.push_back(quaternion);
     }
 
-    mDepthList = reorderedDepthNodes;
-    mQuaternionList = reorderedQuaternions;
     mSHList = reorderedSH;
+    mQuaternionList = quaternions;
+
+    // for (int i = 0; i < numBreadthNodes; i++)
+    // {
+    //     int startIndex = mPartitions.at(mMaxBreadthDepth).at(i);
+    //     int endIndex = mPartitions.at(mMaxBreadthDepth).at(i + 1);
+    //     for (int j = startIndex; j < endIndex; j++)
+    //     {
+    //         SH sh;
+    //         Quaternion quaternion;
+    //         int pointIndex = mPointIndices[j];
+
+    //         sh.index = j;
+    //         sh.r = mCloud->points[pointIndex].r;
+    //         sh.g = mCloud->points[pointIndex].g;
+    //         sh.b = mCloud->points[pointIndex].b;
+    //         reorderedSH.push_back(sh);
+
+    //         quaternion.index = j;
+    //         quaternion.q1 = mCloud->points[pointIndex].q1;
+    //         quaternion.q2 = mCloud->points[pointIndex].q2;
+    //         quaternion.q3 = mCloud->points[pointIndex].q3;
+    //         quaternion.q4 = mCloud->points[pointIndex].q4;
+    //         quaternions.push_back(quaternion);
+    //     }
+
+    //     sort(reorderedSH.begin() + startIndex, reorderedSH.begin() + endIndex, cmpColor);
+
+    //     for (int j = startIndex; j < endIndex; j++)
+    //     {
+    //         int currentIdx = reorderedSH[j].index;
+    //         reorderedDepthNodes.push_back(mDepthList[currentIdx * 3]);
+    //         reorderedDepthNodes.push_back(mDepthList[currentIdx * 3 + 1]);
+    //         reorderedDepthNodes.push_back(mDepthList[currentIdx * 3 + 2]);
+    //         reorderedQuaternions.push_back(quaternions[currentIdx]);
+    //     }
+    // }
+
+    //mDepthList = reorderedDepthNodes;
+    //mQuaternionList = reorderedQuaternions;
+    //mSHList = reorderedSH;
 
     // print size
     std::cout << "mDepthList size: " << mDepthList.size() << std::endl;
     std::cout << "mSHList size: " << mSHList.size() << std::endl;
     std::cout << "mQuaternionList size: " << mQuaternionList.size() << std::endl;
 
-    //for debug
-    std::cout << "--------------Reordered SH---------------" << std::endl;
-    for (int i = 0; i < mSHList.size(); i++)
-    {
-        std::cout << "index: " << mSHList[i].index << " r: " << (int)mSHList[i].r << " g: " << (int)mSHList[i].g << " b: " << (int)mSHList[i].b << std::endl;
-    }
-    std::cout << "-----------------------------------------" << std::endl;
+    // //for debug
+    // std::cout << "--------------Reordered SH---------------" << std::endl;
+    // for (int i = 0; i < mSHList.size(); i++)
+    // {
+    //     std::cout << "index: " << mSHList[i].index << " r: " << (int)mSHList[i].r << " g: " << (int)mSHList[i].g << " b: " << (int)mSHList[i].b << std::endl;
+    // }
+    // std::cout << "-----------------------------------------" << std::endl;
 }
