@@ -21,5 +21,8 @@ int main(int argc, char** argv)
     frame.generateOctree(voxelSize);
     frame.compressBreadthBytes();
     frame.reorder();
+	frame.compressDepthBytes();
+	frame.writeFrame("../data/mean_color_quaternion.bin");
+	frame.decodeFrame("../data/mean_color_quaternion.bin");
     return 0;
 }

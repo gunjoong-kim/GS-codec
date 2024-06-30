@@ -10,6 +10,42 @@ bool cmpColor(const SH& p1, const SH& p2){
     return false;
 }
 
+uint8_t getDepthFourBits(uint8_t val)                  
+{ 
+
+    uint8_t mapped = 0; 
+    switch(val)
+    {
+        case 1:                                           
+            mapped = 1;
+        case 2:
+            mapped = 2;
+            break;
+        case 4:
+            mapped = 3;
+            break;
+        case 8:
+            mapped = 4;                                    
+            break;                                            
+        case 16:                                          
+            mapped = 5;
+            break;        
+        case 32:
+            mapped = 6;
+            break;
+        case 64:
+            mapped = 7;
+            break;
+        case 128:
+            mapped = 8;
+            break;
+        default:
+            printf("ERROR %d\n", val);
+            break;
+    }
+    return mapped;
+}
+
 GaussianFrame::GaussianFrame()
 : mOctree(1.0)
 {
@@ -123,7 +159,7 @@ void GaussianFrame::compressBreadthBytes()
 
         if (curDepth < mOctreeDepth)
         {
-            mBreadthBytes.at(curDepth).push_back(cur.getCurrentOctreeDepth());
+            mBreadthBytes.at(curDepth).push_back(cur.getNodeConfiguration());
         }
         if (curDepth == mMaxBreadthDepth)
         {
@@ -191,34 +227,34 @@ void GaussianFrame::compressBreadthBytes()
     }
 
     // generate leaf node indices
-    // for(int i = 0 ; i < mOctreeDepth ; i++)
-    // { 
-    //     std::vector<int> temp;
-    //     mPartitions.push_back(temp);
-    // }
+     for(int i = 0; i < mOctreeDepth; i++)
+     {
+         std::vector<int> temp;
+         mPartitions.push_back(temp);
+     }
 
-    // int cntChild = 0;
-    // for(int i= 0 ; i < mBreadthBytes.at(mOctreeDepth - 1).size() ; i++)
-    // { 
-    //     mPartitions.at(mOctreeDepth - 1).push_back(cntChild);
-    //     std::bitset<8> bs(mBreadthBytes.at(mOctreeDepth - 1).at(i));
-    //     cntChild += bs.count();
+     int cntChild = 0;
+     for(int i = 0 ; i < mBreadthBytes.at(mOctreeDepth - 1).size() ; i++)
+     { 
+         mPartitions.at(mOctreeDepth - 1).push_back(cntChild);
+         std::bitset<8> bs(mBreadthBytes.at(mOctreeDepth - 1).at(i));
+         cntChild += bs.count();
 
-    // }
-    // mPartitions.at(mOctreeDepth - 1).push_back(cntChild);
-    // int leafNodeNum = cntChild; 
-    // for(int i = mOctreeDepth - 2 ; i >= 0 ; i--)
-    // { 
-    //     int cntChild = 0; 
-    //     for(int j = 0 ; j < mBreadthBytes.at(i).size() ; j++)
-    //     { 
-    //         std::bitset<8> bs(mBreadthBytes.at(i).at(j));
-    //         int childIdx = mPartitions.at(i+1).at(cntChild);
-    //         mPartitions.at(i).push_back(childIdx);
-    //         cntChild += bs.count();
-    //     }
-    //     mPartitions.at(i).push_back(leafNodeNum);
-    // }
+     }
+     mPartitions.at(mOctreeDepth - 1).push_back(cntChild);
+     int leafNodeNum = cntChild; 
+     for(int i = mOctreeDepth - 2 ; i >= 0 ; i--)
+     { 
+         int cntChild = 0; 
+         for(int j = 0 ; j < mBreadthBytes.at(i).size() ; j++)
+         {
+             std::bitset<8> bs(mBreadthBytes.at(i).at(j));
+             int childIdx = mPartitions.at(i+1).at(cntChild);
+             mPartitions.at(i).push_back(childIdx);
+             cntChild += bs.count();
+         }
+         mPartitions.at(i).push_back(leafNodeNum);
+     }
 }
 
 void GaussianFrame::reorder()
@@ -302,4 +338,160 @@ void GaussianFrame::reorder()
     //     std::cout << "index: " << mSHList[i].index << " r: " << (int)mSHList[i].r << " g: " << (int)mSHList[i].g << " b: " << (int)mSHList[i].b << std::endl;
     // }
     // std::cout << "-----------------------------------------" << std::endl;
+}
+
+void GaussianFrame::compressDepthBytes()
+{
+	std::vector<uint8_t> compressedDepthList;
+	if (mDepthList.size() % 2 != 0)
+	{
+		mDepthList.push_back(0);
+	}
+	
+	for (int i = 0; i < mDepthList.size() / 2; i++)
+	{
+		uint8_t firstByte = getDepthFourBits(mDepthList[2 * i]);
+		uint8_t secondByte = getDepthFourBits(mDepthList[2 * i + 1]);
+		secondByte = secondByte << 4;
+		uint8_t compressedByte = firstByte | secondByte;
+		compressedDepthList.push_back(compressedByte);
+	}
+	mDepthList = compressedDepthList;
+
+	printf("--------------Compressed Depth Info---------------\n");
+	printf("Compressed Depth List Size: %d\n", mDepthList.size());
+	printf("--------------------------------------------------\n");
+}
+
+std::vector<uint8_t> GaussianFrame::serializeColor()
+{
+	std::vector<uint8_t> color;
+	for (int i = 0; i < mSHList.size(); i++)
+	{
+		color.push_back(mSHList[i].r);
+		color.push_back(mSHList[i].g);
+		color.push_back(mSHList[i].b);
+	}
+	return color;
+}
+
+std::vector<float> GaussianFrame::serializeQuaternion()
+{
+	std::vector<float> quaternion;
+	for (int i = 0; i < mQuaternionList.size(); i++)
+	{
+		quaternion.push_back(mQuaternionList[i].q1);
+		quaternion.push_back(mQuaternionList[i].q2);
+		quaternion.push_back(mQuaternionList[i].q3);
+		quaternion.push_back(mQuaternionList[i].q4);
+	}
+	return quaternion;
+}
+
+void GaussianFrame::generatePayload()
+{
+	for (int i = 0; i < mMaxBreadthDepth; i++)
+	{
+		mPayload.breadthBytes.insert(mPayload.breadthBytes.end(), mBreadthBytes[i].begin(), mBreadthBytes[i].end());
+	}
+
+	mPayload.depthBytes = mDepthList;
+
+	int cntBreadthLeafIncides = 0;
+	for (int i = 1; i < mBreadthBytes[mMaxBreadthDepth].size(); i++)
+	{
+		int start = mPartitions[mMaxBreadthDepth][i - 1];
+		int end = mPartitions[mMaxBreadthDepth][i];
+		mPayload.breadthIndex.push_back(end - start);
+		cntBreadthLeafIncides += end - start;
+	}
+	mPayload.colorBytes = serializeColor();
+	mPayload.quaternionBytes = serializeQuaternion();
+}
+
+void GaussianFrame::generateHeader()
+{
+	memset(&mHeader, 0, sizeof(Header));
+	mHeader.frameType = 'G';
+	mHeader.numPoints = mOrigNumPoints;
+	mHeader.numBreadthBytes = mPayload.breadthBytes.size();
+	mHeader.numBreadthNodes = mPayload.breadthIndex.size();
+	mHeader.numDepthBytes = mPayload.depthBytes.size();
+	mHeader.numColorBytes = mPayload.colorBytes.size();
+	mHeader.numQuaternionBytes = mPayload.quaternionBytes.size();
+	mHeader.numIcpBytes = 0;
+	mHeader.numIcpNodes = 0;
+	mHeader.rootCenter = mRootCenter;
+	mHeader.rootBoxLength = mRootBoxLength;
+}
+
+void GaussianFrame::writeFrame(const std::string& filename)
+{
+    generatePayload();
+    generateHeader();
+
+    int totalSize = sizeof(Header) + mPayload.breadthBytes.size() + mPayload.depthBytes.size() + mPayload.colorBytes.size() + mPayload.quaternionBytes.size() * sizeof(float);
+
+    std::ofstream outFile(filename, std::ios::binary);
+    if (!outFile) {
+        throw std::runtime_error("Unable to open file for writing");
+    }
+
+    outFile.write(reinterpret_cast<const char*>(&totalSize), sizeof(totalSize));
+    outFile.write(reinterpret_cast<const char*>(&mHeader), sizeof(Header));
+    outFile.write(reinterpret_cast<const char*>(mPayload.breadthBytes.data()), mPayload.breadthBytes.size());
+    outFile.write(reinterpret_cast<const char*>(mPayload.depthBytes.data()), mPayload.depthBytes.size());
+    outFile.write(reinterpret_cast<const char*>(mPayload.breadthIndex.data()), mPayload.breadthIndex.size());
+    outFile.write(reinterpret_cast<const char*>(mPayload.colorBytes.data()), mPayload.colorBytes.size());
+    outFile.write(reinterpret_cast<const char*>(mPayload.quaternionBytes.data()), mPayload.quaternionBytes.size() * sizeof(float));
+
+    outFile.close();
+}
+
+void GaussianFrame::decodeFrame(const std::string& filename)
+{
+	std::ifstream inFile(filename, std::ios::binary);
+
+
+	int totalSize = 0;
+	inFile.read(reinterpret_cast<char*>(&totalSize), sizeof(totalSize));
+
+	Header header;
+	inFile.read(reinterpret_cast<char*>(&header), sizeof(Header));
+
+	// print header
+	printf("--------------Header Info---------------\n");
+	printf("Frame Type: %c\n", header.frameType);
+	printf("Number of Points: %d\n", header.numPoints);
+	printf("Number of Breadth Bytes: %d\n", header.numBreadthBytes);
+	printf("Number of Breadth Nodes: %d\n", header.numBreadthNodes);
+	printf("Number of Depth Bytes: %d\n", header.numDepthBytes);
+	printf("Number of Color Bytes: %d\n", header.numColorBytes);
+	printf("Number of Quaternion Bytes: %d\n", header.numQuaternionBytes);
+	printf("Number of ICP Bytes: %d\n", header.numIcpBytes);
+	printf("Number of ICP Nodes: %d\n", header.numIcpNodes);
+	printf("Root Center: %f %f %f\n", header.rootCenter.x(), header.rootCenter.y(), header.rootCenter.z());
+	printf("Root Box Length: %f\n", header.rootBoxLength);
+	printf("-----------------------------------------\n");
+
+	std::vector<uint8_t> breadthBytes(header.numBreadthBytes);
+	std::vector<uint8_t> depthBytes(header.numDepthBytes);
+	std::vector<uint8_t> breadthIndex(header.numBreadthNodes);
+	std::vector<uint8_t> colorBytes(header.numColorBytes);
+	std::vector<float> quaternionBytes(header.numQuaternionBytes);
+
+	inFile.read(reinterpret_cast<char*>(breadthBytes.data()), header.numBreadthBytes);
+	inFile.read(reinterpret_cast<char*>(depthBytes.data()), header.numDepthBytes);
+	inFile.read(reinterpret_cast<char*>(breadthIndex.data()), header.numBreadthNodes);
+	inFile.read(reinterpret_cast<char*>(colorBytes.data()), header.numColorBytes);
+	inFile.read(reinterpret_cast<char*>(quaternionBytes.data()), header.numQuaternionBytes);
+
+	// print size
+	printf("--------------Decoded Info---------------\n");
+	printf("Breadth Bytes Size: %d\n", breadthBytes.size());
+	printf("Depth Bytes Size: %d\n", depthBytes.size());
+	printf("Breadth Index Size: %d\n", breadthIndex.size());
+	printf("Color Bytes Size: %d\n", colorBytes.size());
+	printf("Quaternion Bytes Size: %d\n", quaternionBytes.size());
+	printf("-----------------------------------------\n");
 }

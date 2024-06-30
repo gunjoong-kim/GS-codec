@@ -7,7 +7,9 @@
                 "/usr/include/pcl-1.12",
                 "/usr/include/eigen3",
                 "/usr/include/vtk-9.1",
-                "${workspaceFolder}/include"
+                "${workspaceFolder}/include",
+                "/usr/local/Cellar/pcl/1.14.1/include/pcl-1.14",
+                "/usr/local/Cellar/eigen/3.4.0_1/include/eigen3"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

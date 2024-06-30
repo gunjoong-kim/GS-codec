@@ -11,7 +11,11 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
+#include <chrono>
 #include <bitset>
+#include <cstdio>
+#include <Eigen/Dense>
 
 // Gaussian Point Type
 struct EIGEN_ALIGN16 Gaussian
@@ -57,6 +61,30 @@ typedef struct Quaternion
     Quaternion():index(0), q1(0), q2(0), q3(0), q4(0) {}
 } Quaternion;
 
+typedef struct Payload
+{
+	std::vector<uint8_t> breadthBytes;
+	std::vector<uint8_t> depthBytes;
+	std::vector<uint8_t> breadthIndex;
+	std::vector<uint8_t> colorBytes;
+	std::vector<float> quaternionBytes;
+} Payload;
+
+typedef struct Header
+{
+	char frameType;
+	int numPoints;
+	int numBreadthBytes;
+	int numBreadthNodes;
+	int numDepthBytes;
+	int numColorBytes;
+	int numQuaternionBytes;
+	int numIcpBytes;
+	int numIcpNodes;
+	Eigen::Vector3f rootCenter;
+	float rootBoxLength;
+} Header;
+
 class GaussianFrame
 {
 public:
@@ -66,7 +94,20 @@ public:
     void readPlyAndTransform(const std::string& filename, float scale, float voxelSize, bool isFlip, float x, float y, float z);
     void generateOctree(float resolution);
     void compressBreadthBytes();
+	void compressDepthBytes();
     void reorder();
+
+	std::vector<uint8_t> serializeColor();
+	std::vector<float> serializeQuaternion();
+
+	void generatePayload();
+	void generateHeader();
+	void writeFrame(const std::string& filename);
+
+	// TODO : reimplement in GaussianCodec
+	void decodeFrame(const std::string& filename);
+
+	
 
 private:
     int mFrameId;
@@ -89,4 +130,7 @@ private:
     std::vector<std::vector<int>> mPartitions;
     
     std::vector<uint8_t> mCompressedDepthBytes;
+
+	Payload mPayload;
+	Header mHeader;
 };
